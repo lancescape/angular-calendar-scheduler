@@ -65,7 +65,7 @@ import { SchedulerModule } from 'angular-calendar-scheduler';
     ...
     imports: [
         ...,
-        CalendarModule.forRoot(),
+        CalendarModule.forRoot({ provide: DateAdapter, useFactory: adapterFactory }),
         SchedulerModule.forRoot({ locale: 'en', headerDateFormat: 'daysRange' }),
         ...
     ],
@@ -98,7 +98,7 @@ export class AppComponent implements OnInit {
 
     view: CalendarView = CalendarView.Week;
     viewDate: Date = new Date();
-    refreshSubject: Subject<any> = new Subject();
+    refresh: Subject<any> = new Subject();
     locale: string = 'en';
     weekStartsOn: number = 1;
     startsWithToday: boolean = true;
@@ -109,7 +109,7 @@ export class AppComponent implements OnInit {
     dayEndHour: number = 22;
 
     minDate: Date = new Date();
-    maxDate: Date = endOfDay(addMonths(new Date(), 1));
+    maxDate: Date = this.dateAdapter.endOfDay(this.dateAdapter.addMonths(new Date(), 1));
     dayModifier: Function;
     hourModifier: Function;
     segmentModifier: Function;
@@ -137,7 +137,7 @@ export class AppComponent implements OnInit {
 
     events: CalendarSchedulerEvent[];
 
-    constructor(@Inject(LOCALE_ID) locale: string, private appService: AppService) {
+    constructor(@Inject(LOCALE_ID) locale: string, private dateAdapter: DateAdapter, private appService: AppService) {
         this.locale = locale;
 
         this.dayModifier = ((day: SchedulerViewDay): void => {
@@ -169,8 +169,9 @@ export class AppComponent implements OnInit {
         this.viewDate = date;
         this.dateOrViewChanged();
     }
+    
 
-    changeView(view: CalendarPeriod): void {
+    changeView(view: CalendarView): void {
         console.log('changeView', view);
         this.view = view;
         this.dateOrViewChanged();
@@ -178,11 +179,11 @@ export class AppComponent implements OnInit {
 
     dateOrViewChanged(): void {
         if (this.startsWithToday) {
-            this.prevBtnDisabled = !this.isDateValid(subPeriod(this.view, this.viewDate, 1));
-            this.nextBtnDisabled = !this.isDateValid(addPeriod(this.view, this.viewDate, 1));
+            this.prevBtnDisabled = !this.isDateValid(subPeriod(this.dateAdapter, this.view, this.viewDate, 1));
+            this.nextBtnDisabled = !this.isDateValid(addPeriod(this.dateAdapter, this.view, this.viewDate, 1));
         } else {
-            this.prevBtnDisabled = !this.isDateValid(endOfPeriod(this.view, subPeriod(this.view, this.viewDate, 1)));
-            this.nextBtnDisabled = !this.isDateValid(startOfPeriod(this.view, addPeriod(this.view, this.viewDate, 1)));
+            this.prevBtnDisabled = !this.isDateValid(endOfPeriod(this.dateAdapter, this.view, subPeriod(this.dateAdapter, this.view, this.viewDate, 1)));
+            this.nextBtnDisabled = !this.isDateValid(startOfPeriod(this.dateAdapter, this.view, addPeriod(this.dateAdapter, this.view, this.viewDate, 1)));
         }
 
         if (this.viewDate < this.minDate) {
